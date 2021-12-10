@@ -64,6 +64,26 @@ def fix_datasource(dashboard):
 
     return dashboard
 
+# fix panel min step value => with "$interval" grafana (8.3.1) throw the following error:
+# failed to query data: time: invalid duration "$interval"
+def fix_panel_interval(dashboard):
+    for element in dashboard.copy():
+        if 'panels' in element:
+            for panel_index, panel in enumerate(dashboard['panels']):
+                if 'targets' in panel:
+                    for target_index, target in enumerate(dashboard['panels'][panel_index]['targets']):
+                        if 'interval' in target:
+                            if dashboard['panels'][panel_index]['targets'][target_index]['interval'] == "$interval":
+                                dashboard['panels'][panel_index]['targets'][target_index]['interval'] = ""
+                if 'panels' in panel:
+                        if len(dashboard['panels'][panel_index]['panels']) > 0:
+                            for panelIn_index, panelIn in enumerate(dashboard['panels'][panel_index]['panels']):
+                                if 'targets' in panelIn:
+                                    for target_index, target in enumerate(dashboard['panels'][panel_index]['panels'][panelIn_index]['targets']):
+                                        if 'interval' in target:
+                                            if dashboard['panels'][panel_index]['panels'][panelIn_index]['targets'][target_index]['interval'] == "$interval":
+                                                dashboard['panels'][panel_index]['panels'][panelIn_index]['targets'][target_index]['interval'] = ""
+    return dashboard
 
 def check_formulas(dashboard, currentVariableName, newVariableName):
     for element in dashboard.copy():
@@ -158,7 +178,7 @@ def main():
     else:
        check_formulas(dashboard, "node_name", "instance")
     # registered procedures.
-    PROCEDURES = [add_datasource_variable, fix_datasource]
+    PROCEDURES = [add_datasource_variable, fix_datasource, fix_panel_interval]
 
     for func in PROCEDURES:
         dashboard = func(dashboard)
